@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""GAQL Query Validator Utility.
+"""GAQL Query Validator Skill.
 
 This script performs a dry-run validation of a GAQL query using the
 validate_only=True parameter. It reads the query from stdin to avoid
@@ -46,41 +45,27 @@ def handle_googleads_exception(exception: GoogleAdsException) -> None:
                 print(f"    On field: {element.field_name}")
 
 
-def main(
+def validate_gaql(
+    customer_id: str,
+    api_version: str,
+    query: str,
     client: Optional[GoogleAdsClient] = None,
-    customer_id: Optional[str] = None,
-    api_version: Optional[str] = None,
-    query: Optional[str] = None,
 ) -> None:
-    """Main function for the GAQL validator.
+    """Validates a GAQL query by performing a dry run against the API.
 
     Args:
-        client: An optional GoogleAdsClient instance.
         customer_id: The Google Ads customer ID.
         api_version: The API version to use (e.g., "v23").
         query: The GAQL query to validate.
+        client: An optional GoogleAdsClient instance.
     """
     if client is None:
-        parser = argparse.ArgumentParser(description="Validates a GAQL query.")
-        parser.add_argument(
-            "--customer_id", required=True, help="Google Ads Customer ID."
-        )
-        parser.add_argument(
-            "--api_version",
-            required=True,
-            help="API Version (e.g., v23).",
-        )
-        args = parser.parse_args()
-
-        customer_id = args.customer_id
-        api_version = args.api_version
-        # Read query from stdin to handle multiline/quoted strings safely
-        query = sys.stdin.read().strip()
-
         try:
             client = GoogleAdsClient.load_from_storage(version=api_version)
         except Exception as e:
-            print(f"CRITICAL ERROR: Failed to load Google Ads configuration: {e}")
+            print(
+                f"CRITICAL ERROR: Failed to load Google Ads configuration: {e}"
+            )
             sys.exit(1)
 
     if not query:
@@ -116,6 +101,25 @@ def main(
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
         sys.exit(1)
+
+
+def main() -> None:
+    """Parses command line arguments and calls validate_gaql."""
+    parser = argparse.ArgumentParser(description="Validates a GAQL query.")
+    parser.add_argument(
+        "--customer_id", required=True, help="Google Ads Customer ID."
+    )
+    parser.add_argument(
+        "--api_version",
+        required=True,
+        help="API Version (e.g., v23).",
+    )
+    args = parser.parse_args()
+
+    # Read query from stdin to handle multiline/quoted strings safely
+    query = sys.stdin.read().strip()
+
+    validate_gaql(args.customer_id, args.api_version, query)
 
 
 if __name__ == "__main__":
