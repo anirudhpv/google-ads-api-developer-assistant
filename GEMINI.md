@@ -76,28 +76,14 @@ If the `web_fetch` tool is unavailable and you cannot complete the standard vali
 
 ### 3. GAQL & API Workflow [TECHNICAL]
 
-#### 3.1. Programmatic GAQL Validation (CRITICAL)
-Before presenting or executing ANY GAQL query, you MUST pass this 4-step sequence:
-
-1.  **Schema Discovery:** Use `GoogleAdsFieldService.search_google_ads_fields` to verify field existence, selectability, and filterability.
-2.  **Compatibility Check:** Query the primary resource's `selectable_with` attribute. Verify all selected fields are compatible.
-3.  **Static Analysis:**
-    - `WHERE` fields MUST be in `SELECT` (unless core date segments).
-    - `OR` is forbidden. Use `IN` or multiple queries.
-    - No `FROM` clause in metadata queries.
-    - **Metadata Field Names:** When using `GoogleAdsFieldService.search_google_ads_fields`, field names MUST NOT be prefixed with the resource name (e.g., use `name`, not `google_ads_field.name`). Do NOT use `GoogleAdsService` to query `google_ads_field`. Failure results in `UNRECOGNIZED_FIELD`.
-4.  **Runtime Dry Run:** Execute `./.venv/bin/python3 api_examples/gaql_validator.py`.
-    - **Success:** Proceed to implementation.
-    - **Failure:** Fix query based on validator output and restart from Step 1.
-
-#### 3.2. Code Generation Protocol (Python)
+#### 3.1.  Code Generation Protocol (Python)
 Every Python script generated MUST follow this automated linting pipeline:
 1.  **Write:** Write code to a temporary file in `/tmp/`.
 2.  **Lint:** Run `ruff check --fix <tmp_file>`.
 3.  **Read:** Read the fixed code from the temporary file.
 4.  **Finalize:** Use the fixed code in the `write_file` or `run_shell_command` tool.
 
-#### 3.3. Error Handling (Python)
+#### 3.2. Error Handling (Python)
 Catch `GoogleAdsException` as `ex`. Iterate over `ex.failure.errors`.
 ```python
 try:
