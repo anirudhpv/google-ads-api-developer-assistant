@@ -15,6 +15,8 @@
 """Skill script to retrieve all child customer accounts under an MCC."""
 
 import argparse
+import csv
+import os
 import re
 import sys
 from typing import Optional
@@ -44,13 +46,16 @@ def get_cids_under_mcc(
     customer_id: str,
     api_version: str,
     client: Optional[GoogleAdsClient] = None,
-) -> None:
-    """Retrieves and prints all child customer accounts under an MCC.
+) -> list[tuple[str, int, bool]]:
+    """Retrieves all child customer accounts under an MCC as a list of tuples.
 
     Args:
         customer_id: The Google Ads MCC customer ID.
         api_version: The API version to use (e.g., "v23").
         client: An optional GoogleAdsClient instance.
+
+    Returns:
+        A list of tuples containing (Customer ID, Level, Is MCC).
     """
     if client is None:
         try:
@@ -72,7 +77,6 @@ def get_cids_under_mcc(
     query = """
         SELECT
             customer_client.id,
-            customer_client.descriptive_name,
             customer_client.level,
             customer_client.manager
         FROM customer_client
@@ -80,23 +84,17 @@ def get_cids_under_mcc(
         ORDER BY customer_client.level, customer_client.id
     """
 
+    results = []
     try:
         stream = ga_service.search_stream(customer_id=clean_customer_id, query=query)
-        print(f"Child accounts under MCC {clean_customer_id}:")
-        print(f"{'Customer ID':<15} {'Level':<7} {'Is MCC':<8} {'Descriptive Name'}")
-        print("-" * 55)
-        count = 0
         for batch in stream:
             for row in batch.results:
-                count += 1
                 cc = row.customer_client
                 cid = str(cc.id)
-                level = str(cc.level)
-                is_mcc = "Yes" if cc.manager else "No"
-                name = cc.descriptive_name or "<None>"
-                print(f"{cid:<15} {level:<7} {is_mcc:<8} {name}")
-        if count == 0:
-            print("No child accounts found.")
+                level = int(cc.level)
+                is_mcc = bool(cc.manager)
+                results.append((cid, level, is_mcc))
+        return results
     except GoogleAdsException as ex:
         handle_googleads_exception(ex)
         sys.exit(1)
@@ -119,6 +117,12 @@ def main() -> None:
         default="v23",
         help="API Version (e.g., v23).",
     )
+    parser.add_argument(
+        "--save_csv",
+        action="store_true",
+        default=False,
+        help="If set, saves the results to a CSV file in saved/csv/.",
+    )
     args = parser.parse_args()
 
     customer_id = args.customer_id
@@ -133,7 +137,41 @@ def main() -> None:
         print("Error: No MCC Customer ID provided.", file=sys.stderr)
         sys.exit(1)
 
-    get_cids_under_mcc(customer_id, args.api_version)
+    clean_id = "".join(re.findall(r"\d+", str(customer_id)))
+    cids = get_cids_under_mcc(customer_id, args.api_version)
+
+    if args.save_csv:
+        # Assumes script is in .gemini/skills/get_cids_under_mcc/scripts/
+        # Project root is 5 levels up
+        base_dir = os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                )
+            )
+        )
+        csv_dir = os.path.join(base_dir, "saved", "csv")
+        os.makedirs(csv_dir, exist_ok=True)
+        csv_path = os.path.join(csv_dir, f"cids_under_mcc_{clean_id}.csv")
+
+        try:
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Customer ID", "Level", "Is MCC"])
+                writer.writerows(cids)
+            print(f"SUCCESS: Results saved to {csv_path}")
+        except Exception as e:
+            print(f"Error saving CSV file: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print(f"Child accounts under MCC {clean_id}:")
+        print(f"{'Customer ID':<15} {'Level':<7} {'Is MCC':<8}")
+        print("-" * 32)
+        for cid, level, is_mcc in cids:
+            is_mcc_str = "Yes" if is_mcc else "No"
+            print(f"{cid:<15} {level:<7} {is_mcc_str:<8}")
+        if not cids:
+            print("No child accounts found.")
 
 
 if __name__ == "__main__":

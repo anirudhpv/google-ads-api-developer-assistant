@@ -15,7 +15,6 @@
 """Unit tests for get_cids_under_mcc skill script."""
 
 import argparse
-import builtins
 import io
 import os
 import sys
@@ -38,18 +37,20 @@ class TestGetCidsUnderMcc(unittest.TestCase):
         self.mock_service = mock.MagicMock()
         self.mock_client.get_service.return_value = self.mock_service
 
-    @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
-    def test_get_cids_success(self, mock_stdout) -> None:
+        # Setup test csv directory
+        self.script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.base_dir = os.path.abspath(os.path.join(self.script_dir, "../../../.."))
+        self.csv_dir = os.path.join(self.base_dir, "saved", "csv")
+
+    def test_get_cids_success(self) -> None:
         # Mock stream batches
         mock_cc1 = mock.MagicMock()
         mock_cc1.id = 11111111
-        mock_cc1.descriptive_name = "Child Account 1"
         mock_cc1.level = 1
         mock_cc1.manager = False
 
         mock_cc2 = mock.MagicMock()
         mock_cc2.id = 22222222
-        mock_cc2.descriptive_name = ""
         mock_cc2.level = 2
         mock_cc2.manager = True
 
@@ -59,31 +60,22 @@ class TestGetCidsUnderMcc(unittest.TestCase):
 
         self.mock_service.search_stream.return_value = [mock_batch]
 
-        get_cids_under_mcc.get_cids_under_mcc(
+        results = get_cids_under_mcc.get_cids_under_mcc(
             customer_id="12345678", api_version="v23", client=self.mock_client
         )
 
         self.mock_client.get_service.assert_called_once_with("GoogleAdsService")
         self.mock_service.search_stream.assert_called_once()
-        output = mock_stdout.getvalue()
-        self.assertIn("Child accounts under MCC 12345678:", output)
-        self.assertIn("11111111", output)
-        self.assertIn("Child Account 1", output)
-        self.assertIn("22222222", output)
-        self.assertIn("Yes", output)
-        self.assertIn("<None>", output)
+        self.assertEqual(results, [("11111111", 1, False), ("22222222", 2, True)])
 
-    @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
-    def test_get_cids_empty(self, mock_stdout) -> None:
+    def test_get_cids_empty(self) -> None:
         mock_batch = mock.MagicMock(results=[])
         self.mock_service.search_stream.return_value = [mock_batch]
 
-        get_cids_under_mcc.get_cids_under_mcc(
+        results = get_cids_under_mcc.get_cids_under_mcc(
             customer_id="12345678", api_version="v23", client=self.mock_client
         )
-
-        output = mock_stdout.getvalue()
-        self.assertIn("No child accounts found.", output)
+        self.assertEqual(results, [])
 
     @mock.patch.object(sys, "stderr", new_callable=io.StringIO)
     def test_get_cids_invalid_cid(self, mock_stderr) -> None:
@@ -133,25 +125,52 @@ class TestGetCidsUnderMcc(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
         self.assertIn("CRITICAL ERROR: Stream failed", mock_stderr.getvalue())
 
+    @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
     @mock.patch.object(argparse.ArgumentParser, "parse_args")
     @mock.patch.object(get_cids_under_mcc, "get_cids_under_mcc", autospec=True)
-    def test_main_with_args(self, mock_get_cids, mock_parse_args) -> None:
+    def test_main_no_csv(self, mock_get_cids, mock_parse_args, mock_stdout) -> None:
         mock_parse_args.return_value = argparse.Namespace(
-            customer_id="12345678", api_version="v23"
+            customer_id="12345678", api_version="v23", save_csv=False
         )
-        get_cids_under_mcc.main()
-        mock_get_cids.assert_called_once_with("12345678", "v23")
+        mock_get_cids.return_value = [("11111111", 1, False)]
 
-    @mock.patch.object(builtins, "input")
+        get_cids_under_mcc.main()
+
+        mock_get_cids.assert_called_once_with("12345678", "v23")
+        output = mock_stdout.getvalue()
+        self.assertIn("Child accounts under MCC 12345678:", output)
+        self.assertIn("11111111", output)
+        self.assertIn("No", output)
+
+    @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
     @mock.patch.object(argparse.ArgumentParser, "parse_args")
     @mock.patch.object(get_cids_under_mcc, "get_cids_under_mcc", autospec=True)
-    def test_main_with_input(self, mock_get_cids, mock_parse_args, mock_input) -> None:
+    def test_main_save_csv(self, mock_get_cids, mock_parse_args, mock_stdout) -> None:
         mock_parse_args.return_value = argparse.Namespace(
-            customer_id=None, api_version="v23"
+            customer_id="12345678", api_version="v23", save_csv=True
         )
-        mock_input.return_value = "87654321"
+        mock_get_cids.return_value = [("11111111", 1, False), ("22222222", 2, True)]
+
+        # Ensure clean state for csv
+        csv_file = os.path.join(self.csv_dir, "cids_under_mcc_12345678.csv")
+        if os.path.exists(csv_file):
+            os.remove(csv_file)
+
         get_cids_under_mcc.main()
-        mock_get_cids.assert_called_once_with("87654321", "v23")
+
+        mock_get_cids.assert_called_once_with("12345678", "v23")
+        self.assertTrue(os.path.exists(csv_file))
+        with open(csv_file, "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn("Customer ID,Level,Is MCC", content)
+            self.assertIn("11111111,1,False", content)
+            self.assertIn("22222222,2,True", content)
+
+        self.assertIn(f"SUCCESS: Results saved to {csv_file}", mock_stdout.getvalue())
+
+        # Cleanup
+        if os.path.exists(csv_file):
+            os.remove(csv_file)
 
 
 if __name__ == "__main__":
