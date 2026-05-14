@@ -128,9 +128,36 @@ class TestGetCidsUnderMcc(unittest.TestCase):
     @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
     @mock.patch.object(argparse.ArgumentParser, "parse_args")
     @mock.patch.object(get_cids_under_mcc, "get_cids_under_mcc", autospec=True)
-    def test_main_no_csv(self, mock_get_cids, mock_parse_args, mock_stdout) -> None:
+    def test_main_default_count(
+        self, mock_get_cids, mock_parse_args, mock_stdout
+    ) -> None:
         mock_parse_args.return_value = argparse.Namespace(
-            customer_id="12345678", api_version="v23", save_csv=False
+            customer_id="12345678",
+            api_version="v23",
+            save_csv=False,
+            print_cids=False,
+        )
+        mock_get_cids.return_value = [
+            ("11111111", 1, False),
+            ("22222222", 2, True),
+        ]
+
+        get_cids_under_mcc.main()
+
+        mock_get_cids.assert_called_once_with("12345678", "v23")
+        self.assertIn(
+            "Found 2 child accounts under MCC 12345678.", mock_stdout.getvalue()
+        )
+
+    @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
+    @mock.patch.object(argparse.ArgumentParser, "parse_args")
+    @mock.patch.object(get_cids_under_mcc, "get_cids_under_mcc", autospec=True)
+    def test_main_print_cids(self, mock_get_cids, mock_parse_args, mock_stdout) -> None:
+        mock_parse_args.return_value = argparse.Namespace(
+            customer_id="12345678",
+            api_version="v23",
+            save_csv=False,
+            print_cids=True,
         )
         mock_get_cids.return_value = [("11111111", 1, False)]
 
@@ -147,9 +174,15 @@ class TestGetCidsUnderMcc(unittest.TestCase):
     @mock.patch.object(get_cids_under_mcc, "get_cids_under_mcc", autospec=True)
     def test_main_save_csv(self, mock_get_cids, mock_parse_args, mock_stdout) -> None:
         mock_parse_args.return_value = argparse.Namespace(
-            customer_id="12345678", api_version="v23", save_csv=True
+            customer_id="12345678",
+            api_version="v23",
+            save_csv=True,
+            print_cids=False,
         )
-        mock_get_cids.return_value = [("11111111", 1, False), ("22222222", 2, True)]
+        mock_get_cids.return_value = [
+            ("11111111", 1, False),
+            ("22222222", 2, True),
+        ]
 
         # Ensure clean state for csv
         csv_file = os.path.join(self.csv_dir, "cids_under_mcc_12345678.csv")

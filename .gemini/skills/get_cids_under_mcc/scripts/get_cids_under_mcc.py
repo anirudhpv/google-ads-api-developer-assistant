@@ -123,6 +123,12 @@ def main() -> None:
         default=False,
         help="If set, saves the results to a CSV file in saved/csv/.",
     )
+    parser.add_argument(
+        "--print_cids",
+        action="store_true",
+        default=False,
+        help="If set, prints the detailed table of child accounts to the console.",
+    )
     args = parser.parse_args()
 
     customer_id = args.customer_id
@@ -163,7 +169,8 @@ def main() -> None:
         except Exception as e:
             print(f"Error saving CSV file: {e}", file=sys.stderr)
             sys.exit(1)
-    else:
+
+    if args.print_cids:
         print(f"Child accounts under MCC {clean_id}:")
         print(f"{'Customer ID':<15} {'Level':<7} {'Is MCC':<8}")
         print("-" * 32)
@@ -172,6 +179,9 @@ def main() -> None:
             print(f"{cid:<15} {level:<7} {is_mcc_str:<8}")
         if not cids:
             print("No child accounts found.")
+
+    if not args.save_csv and not args.print_cids:
+        print(f"Found {len(cids)} child accounts under MCC {clean_id}.")
 
 
 if __name__ == "__main__":
