@@ -35,9 +35,7 @@ def handle_googleads_exception(exception: GoogleAdsException) -> None:
     Args:
         exception: An exception of type GoogleAdsException.
     """
-    print(
-        f"FAILURE: Query validation failed with Request ID {exception.request_id}"
-    )
+    print(f"FAILURE: Query validation failed with Request ID {exception.request_id}")
     for error in exception.failure.errors:
         print(f"  - {error.message}")
         if error.location:
@@ -63,9 +61,7 @@ def validate_gaql(
         try:
             client = GoogleAdsClient.load_from_storage(version=api_version)
         except Exception as e:
-            print(
-                f"CRITICAL ERROR: Failed to load Google Ads configuration: {e}"
-            )
+            print(f"CRITICAL ERROR: Failed to load Google Ads configuration: {e}")
             sys.exit(1)
 
     if not query:
@@ -74,7 +70,9 @@ def validate_gaql(
 
     # Dynamically handle versioned types for the request object
     api_version_lower = api_version.lower()
-    module_path = f"google.ads.googleads.{api_version_lower}.services.types.google_ads_service"
+    module_path = (
+        f"google.ads.googleads.{api_version_lower}.services.types.google_ads_service"
+    )
     try:
         module = importlib.import_module(module_path)
         search_request_type = getattr(module, "SearchGoogleAdsRequest")
@@ -106,9 +104,7 @@ def validate_gaql(
 def main() -> None:
     """Parses command line arguments and calls validate_gaql."""
     parser = argparse.ArgumentParser(description="Validates a GAQL query.")
-    parser.add_argument(
-        "--customer_id", required=True, help="Google Ads Customer ID."
-    )
+    parser.add_argument("--customer_id", required=True, help="Google Ads Customer ID.")
     parser.add_argument(
         "--api_version",
         required=True,

@@ -74,7 +74,7 @@ If the `web_fetch` tool is unavailable and you cannot complete the standard vali
 
 ---
 
-### 3. GAQL & API Workflow [TECHNICAL]
+### 3. API Workflow [TECHNICAL]
 
 #### 3.1.  Code Generation Protocol (Python)
 Every Python script generated MUST follow this automated linting pipeline:

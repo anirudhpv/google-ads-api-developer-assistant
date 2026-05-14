@@ -1,3 +1,6 @@
+* 2.3.1
+- Moved GAQL validation from GEMINI.md to a skill.
+
 * 2.3.0
 - Added context_dir argument to update scripts to add additional directories. (e.g., your codebase)
 - When the assistant executes Python code it is in a virtual environment that has the Google Ads API Client Libraries installed.
