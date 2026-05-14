@@ -12,7 +12,7 @@ This skill validates a GAQL query by performing a dry-run execution against the 
 Run the python script, passing the customer ID and API version as arguments, and providing the GAQL query via standard input:
 
 ```bash
-python3 skills/validate_gaql/scripts/validate_gaql.py --customer_id <customer_id> --api_version <api_version> << 'EOF'
+./.venv/bin/python3 skills/validate_gaql/scripts/validate_gaql.py --customer_id <customer_id> --api_version <api_version> << 'EOF'
 SELECT campaign.id, campaign.name FROM campaign
 EOF
 ```
