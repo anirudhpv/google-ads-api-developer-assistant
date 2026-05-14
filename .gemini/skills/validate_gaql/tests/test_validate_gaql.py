@@ -88,9 +88,7 @@ class TestValidateGaql(unittest.TestCase):
                 client=self.mock_client,
             )
         self.assertEqual(cm.exception.code, 1)
-        self.assertIn(
-            "CRITICAL ERROR: Unexpected failure", mock_stdout.getvalue()
-        )
+        self.assertIn("CRITICAL ERROR: Unexpected failure", mock_stdout.getvalue())
 
     @mock.patch.object(sys, "stdout", new_callable=io.StringIO)
     def test_validate_gaql_googleads_exception(self, mock_stdout) -> None:
@@ -126,9 +124,7 @@ class TestValidateGaql(unittest.TestCase):
     @mock.patch.object(sys, "stdin", new_callable=io.StringIO)
     @mock.patch.object(argparse.ArgumentParser, "parse_args")
     @mock.patch.object(validate_gaql, "validate_gaql", autospec=True)
-    def test_main(
-        self, mock_validate_gaql, mock_parse_args, mock_stdin
-    ) -> None:
+    def test_main(self, mock_validate_gaql, mock_parse_args, mock_stdin) -> None:
         mock_parse_args.return_value = argparse.Namespace(
             customer_id="12345678", api_version="v23"
         )
