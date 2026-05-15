@@ -57,36 +57,6 @@
     *   `conversion_date_time` > `click_time`.
     *   Click is within Lookback Window.
 
-### 4. Troubleshooting Workflow [MANDATORY]
-
-1.  **STEP 1: Diagnostic Summaries**: Execute queries against `offline_conversion_upload_client_summary` and `offline_conversion_upload_conversion_action_summary`.
-    *   **[PITFALL] Attribute Name**: Use `successful_count` and `failed_count`. DO NOT use `success_count`.
-    *   **[PITFALL] Summary Object**: `daily_summaries` (OfflineConversionSummary) DOES NOT have a `total_count` field. Use `successful_count + failed_count + pending_count` for a total. `total_event_count` is only available at the top-level resource, not within `daily_summaries`.
-    *   **[PITFALL] Alert Object**: `alerts` (OfflineConversionAlert) uses `error` and `error_percentage`. DO NOT use `error_code` or `error_count`.
-    *   **[PITFALL] Alerts Field Location**: The `alerts` field is located at the top-level resource (`offline_conversion_upload_client_summary` or `offline_conversion_upload_conversion_action_summary`), NOT within the `daily_summaries` list.
-2.  **STEP 2: Exception Inspection**: Catch `GoogleAdsException` and iterate over `ex.failure.errors`.
-3.  **STEP 3: Identity & Consent**: Verify GCLID ownership and `consent` settings.
-
-### 5. Structured Diagnostic Reporting [MANDATORY]
-
-The AI MUST format final reports as follows:
-1.  **Introductory Analysis**: State the Customer ID and the primary issue identified.
-2.  **Numbered Technical Findings**: Detailed analysis of specific factors (e.g., Status, Metrics).
-3.  **Specific Observations**: Bulleted data points (success rates, specific errors).
-4.  **Actionable Recommendations**: Clear next steps for the user.
-5.  **Empty Section Handling**: If summaries are empty, AI MUST append "Reason: No standard offline imports detected in last 90 days" inside the report.
-6.  **Full Diagnostic Data Mandate**: The report MUST contain the verbatim output or detailed data from the `offline_conversion_upload_client_summary` and `offline_conversion_upload_conversion_action_summary` queries to ensure transparency and complete diagnostic visibility.
-7.  **Structured Analysis Mandate**: The report MUST include a structured section containing "Primary Errors Identified" (with root causes and fixes), "Specific Action Failures", "General Health" assessment, and "Actionable Recommendations" as presented to the user.
-8.  **Verbatim Screen Output Mandate**: The report MUST ALWAYS include the verbatim structured analysis and recommendations text presented to the user on the screen (e.g. detailed findings for EXPIRED_EVENT, specific action failures, and timing issues).
-
-**Consolidation Mandate**: All findings, including terminal summaries, the structured analysis, the verbatim screen output, and the **complete verbatim data** from all troubleshooting scripts and queries, MUST be consolidated into a **single, uniquely named text file** in `saved/data/`. 
-
-**Mandatory Naming Rule**:
-- For reports generated via the `conversions_support_package` skill, the file MUST be named exactly `conversions_support_package_<epoch>.text`.
-- For any other conversion-related reports or files, DO NOT use this specific naming convention.
-
-This file MUST be the sole artifact submitted to the user for support. It must start with the header "Created by the Google Ads API Developer Assistant". Placeholders or references to other files for "details" are strictly prohibited; all data must be contained within this single file.
-
 ---
 
 ### 6. References
