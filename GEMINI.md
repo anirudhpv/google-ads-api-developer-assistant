@@ -34,16 +34,17 @@
 - **NO RESOURCE PREFIXES IN METADATA:** In `GoogleAdsFieldService` queries, use bare field names (e.g., `name`, `category`), NOT prefixed names (e.g., `google_ads_field.name`).
 
 #### 1.3. Workflow: API Versioning & Pre-Task Validation
+1.  **Fetch (Primary):** ALWAYS check `https://developers.google.com/google-ads/api/docs/release-notes` FIRST using `web_fetch`.
+2.  **Search (Fallback):** IF `web_fetch` fails or the URL is unreachable, use `google_web_search` with query `google ads api release notes`.
+3.  **Identify:** Find the latest MAJOR stable version (e.g., `v17`).
+4.  **Confirm:** Present version + source URL. "Latest stable version is [vXX] per [URL]. Proceed?"
+5.  **Lock:** Await explicit user "Yes" or version override. Do not repeat this in the same session.
+
 #### 1.4. Technical Gatekeeping (Protocol Enforcement)
 - **NO BYPASS:** Bypassing the GAQL Validation (3.1) or Python Linting (3.2) protocols is a **System Failure**. 
 - **EXPLICIT LOGGING:** Before calling `run_shell_command` for Python or any API search tool, you MUST explicitly state which protocol step you are currently executing (e.g., "Protocol 3.2: Executing Ruff linting on /tmp/script.py").
 - **PRE-FLIGHT GATE:** For every Python script, the `ruff` check is a blocking operation. If `ruff` returns an error, you MUST fix it and re-lint before the script is even considered for the `saved/code/` directory.
 - **GAQL INTEGRITY:** Any GAQL query presented in chat or sent to the API MUST be preceded by a "Validation Block" confirming it has passed the 4-step sequence in Section 3.1.
-1.  **Search (Exact):** `google_web_search` with query `google ads api release notes`.
-2.  **Fetch (Source):** Extract content from `developers.google.com/google-ads/api/docs/release-notes`.
-3.  **Identify:** Find the latest MAJOR stable version (e.g., `v23`).
-4.  **Confirm:** Present version + source URL. "Latest stable version is [vXX] per [URL]. Proceed?"
-5.  **Lock:** Await explicit user "Yes" or version override. Do not repeat this in the same session.
 
 **FAILURE TO VALIDATE VERSION IS A CRITICAL SYSTEM ERROR.**
 
