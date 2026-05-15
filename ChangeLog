@@ -1,5 +1,8 @@
-* 2.3.1
+* 2.4.0
 - Moved GAQL validation from GEMINI.md to a skill.
+- Added skill to fetch all child accounts under an MCC.
+- Added rule to GEMINI.md to always check Devsite first for current version.
+- Added rule to GEMINI.md to prevent using SQL aggregate functions in GAQL queries.
 
 * 2.3.0
 - Added context_dir argument to update scripts to add additional directories. (e.g., your codebase)

@@ -130,6 +130,7 @@ except GoogleAdsException as ex:
 5. **Repeated Fields:** Never select sub-fields of repeated messages (e.g., `ad_group.labels.name`). Select the parent and iterate.
 6.  **Ordering:** Fields in `ORDER BY` MUST be in `SELECT` unless they belong to the primary resource.
 7.  **Forbidden Operators:** The `OR` operator is strictly forbidden in GAQL `WHERE` clauses. Use `IN` for multiple values or execute separate queries to avoid `UNEXPECTED_INPUT` errors.
+8. **Forbidden Functions:** GAQL does not support the following SQL functions: `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `NOW()`, `CURRENT_DATE()`.
 
 #### 4.3. Python Object Inspection (CRITICAL)
 NEVER guess the structure of an API object.
