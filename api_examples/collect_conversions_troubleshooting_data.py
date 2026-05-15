@@ -43,11 +43,11 @@ def run_query(client: GoogleAdsClient, customer_id: str, query: str) -> List[Any
 def merge_previous_findings(output_dir: str) -> List[str]:
     """Reads findings from existing support packages to maintain context."""
     findings = []
-    prev_files = sorted(glob.glob(os.path.join(output_dir, "conversions_support_data_*.txt")), reverse=True)
+    prev_files = sorted(glob.glob(os.path.join(output_dir, "conversions_support_package_*.text")), reverse=True)
     if prev_files:
         for pf in prev_files[:2]:
             try:
-                with open(pf, "r") as f:
+                with open(pf, "r", encoding="utf-8") as f:
                     content = f.read()
                     if "=== SUMMARY OF FINDINGS ===" in content:
                         summary_part = content.split("=== ERRORS FOUND ===")[0]
@@ -61,7 +61,7 @@ def main(client: GoogleAdsClient, customer_id: str):
     epoch = int(time.time())
     output_dir = "saved/data"
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, f"conversions_support_data_{epoch}.txt")
+    output_path = os.path.join(output_dir, f"conversions_support_package_{epoch}.text")
 
     summary = []
     errors = []
@@ -85,24 +85,66 @@ def main(client: GoogleAdsClient, customer_id: str):
         if not cts.accepted_customer_data_terms:
             errors.append("CRITICAL: Customer Data Terms NOT accepted.")
 
-    details.append("\n[2] Conversion Health (Last 7 Days)")
+    details.append("\n[2] Client Summary (Overall Health)")
+    client_query = """
+    SELECT
+      offline_conversion_upload_client_summary.client,
+      offline_conversion_upload_client_summary.status,
+      offline_conversion_upload_client_summary.successful_event_count,
+      offline_conversion_upload_client_summary.total_event_count,
+      offline_conversion_upload_client_summary.daily_summaries,
+      offline_conversion_upload_client_summary.alerts
+    FROM offline_conversion_upload_client_summary
+    """
+    results = run_query(client, customer_id, client_query)
+    if not results:
+        details.append("Reason: No standard offline imports detected in last 90 days")
+    else:
+        for row in results:
+            csum = row.offline_conversion_upload_client_summary
+            details.append(f"Client Status: {csum.status.name} (Total Success: {csum.successful_event_count}/{csum.total_event_count})")
+            for ds in csum.daily_summaries:
+                total = ds.successful_count + ds.failed_count + ds.pending_count
+                details.append(f"  - {ds.upload_date}: Success={ds.successful_count}/{total}, Fail={ds.failed_count}, Pending={ds.pending_count}")
+            for alert in csum.alerts:
+                try:
+                    error_type = type(alert.error).pb(alert.error).WhichOneof("error_code")
+                    error_val = getattr(alert.error, error_type)
+                    error_name = error_val.name
+                    details.append(f"  - Alert: {error_name} ({alert.error_percentage:.2%})")
+                    errors.append(f"Client Alert: {error_name} ({alert.error_percentage:.2%})")
+                except Exception:
+                    details.append(f"  - Alert: {alert.error} ({alert.error_percentage:.2%})")
+
+    details.append("\n[3] Conversion Action Summaries (Last 7 Days)")
     summary_query = """
     SELECT
       offline_conversion_upload_conversion_action_summary.conversion_action_name,
       offline_conversion_upload_conversion_action_summary.successful_event_count,
       offline_conversion_upload_conversion_action_summary.total_event_count,
-      offline_conversion_upload_conversion_action_summary.daily_summaries
+      offline_conversion_upload_conversion_action_summary.daily_summaries,
+      offline_conversion_upload_conversion_action_summary.alerts
     FROM offline_conversion_upload_conversion_action_summary
     """
     results = run_query(client, customer_id, summary_query)
     if not results:
-        details.append("No offline conversion summaries detected in last 90 days.")
+        details.append("Reason: No standard offline imports detected in last 90 days")
     else:
         for row in results:
             asum = row.offline_conversion_upload_conversion_action_summary
             details.append(f"Action: {asum.conversion_action_name} (Total Success: {asum.successful_event_count}/{asum.total_event_count})")
             for ds in asum.daily_summaries:
-                details.append(f"  - {ds.upload_date}: Success={ds.successful_count}, Fail={ds.failed_count}, Pending={ds.pending_count}")
+                total = ds.successful_count + ds.failed_count + ds.pending_count
+                details.append(f"  - {ds.upload_date}: Success={ds.successful_count}/{total}, Fail={ds.failed_count}, Pending={ds.pending_count}")
+            for alert in asum.alerts:
+                try:
+                    error_type = type(alert.error).pb(alert.error).WhichOneof("error_code")
+                    error_val = getattr(alert.error, error_type)
+                    error_name = error_val.name
+                    details.append(f"  - Alert: {error_name} ({alert.error_percentage:.2%})")
+                    errors.append(f"Action Alert ({asum.conversion_action_name}): {error_name} ({alert.error_percentage:.2%})")
+                except Exception:
+                    details.append(f"  - Alert: {alert.error} ({alert.error_percentage:.2%})")
 
     history = merge_previous_findings(output_dir)
 

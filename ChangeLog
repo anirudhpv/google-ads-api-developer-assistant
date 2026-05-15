@@ -6,6 +6,7 @@
 - Converted explain command to a skill.
 - Converted step_by_step command to a skill.
 - Converted conversions_support_package command to a skill.
+- Updated collect_conversions_troubleshooting_data.py to be fully compliant with v24 conversion troubleshooting directives.
 
 * 2.3.0
 - Added context_dir argument to update scripts to add additional directories. (e.g., your codebase)

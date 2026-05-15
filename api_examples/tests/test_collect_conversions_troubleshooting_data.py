@@ -50,28 +50,42 @@ class TestCollectConversionsTroubleshootingData(unittest.TestCase):
         mock_row_customer.customer.conversion_tracking_setting.accepted_customer_data_terms = True
         mock_row_customer.customer.conversion_tracking_setting.enhanced_conversions_for_leads_enabled = True
 
+        ds = MagicMock()
+        ds.upload_date = "2026-02-24"
+        ds.successful_count = 10
+        ds.failed_count = 0
+        ds.pending_count = 0
+
+        # 1b. Client Summary Mock
+        mock_row_cs = MagicMock()
+        csum = mock_row_cs.offline_conversion_upload_client_summary
+        csum.status.name = "SUCCESS"
+        csum.successful_event_count = 50
+        csum.total_event_count = 50
+        csum.daily_summaries = [ds]
+        csum.alerts = []
+
         # 2. Action Summary Mock
         mock_row_as = MagicMock()
         asum = mock_row_as.offline_conversion_upload_conversion_action_summary
         asum.conversion_action_name = "Test Action"
         asum.successful_event_count = 50
         asum.total_event_count = 50
-        
-        ds = MagicMock()
-        ds.upload_date = "2026-02-24"
-        ds.successful_count = 10
-        ds.failed_count = 0
-        ds.pending_count = 0
         asum.daily_summaries = [ds]
+        asum.alerts = []
 
         mock_batch_customer = MagicMock()
         mock_batch_customer.results = [mock_row_customer]
+
+        mock_batch_cs = MagicMock()
+        mock_batch_cs.results = [mock_row_cs]
         
         mock_batch_as = MagicMock()
         mock_batch_as.results = [mock_row_as]
 
         self.mock_ga_service.search_stream.side_effect = [
             [mock_batch_customer],
+            [mock_batch_cs],
             [mock_batch_as]
         ]
 
@@ -82,6 +96,7 @@ class TestCollectConversionsTroubleshootingData(unittest.TestCase):
         
         self.assertIn("Diagnostic Report for Customer ID: 1234567890", written_content)
         self.assertIn("Customer: Test Customer", written_content)
+        self.assertIn("Client Status: SUCCESS (Total Success: 50/50)", written_content)
         self.assertIn("Action: Test Action (Total Success: 50/50)", written_content)
         self.assertIn("No blocking errors detected.", written_content)
 
@@ -101,6 +116,7 @@ class TestCollectConversionsTroubleshootingData(unittest.TestCase):
         
         self.mock_ga_service.search_stream.side_effect = [
             [mock_batch_customer],
+            [],
             []
         ]
 
