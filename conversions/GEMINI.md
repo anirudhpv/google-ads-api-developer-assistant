@@ -1,7 +1,7 @@
 # Google Ads API Conversion Troubleshooting 
 
 ## Metadata
-- **Version:** 2.3.0
+- **Version:** 2.4.0
 - **Role:** Technical Reference for AI Assistant
 - **Optimized for:** Machine Comprehension
 
@@ -82,7 +82,7 @@ The AI MUST format final reports as follows:
 **Consolidation Mandate**: All findings, including terminal summaries, the structured analysis, the verbatim screen output, and the **complete verbatim data** from all troubleshooting scripts and queries, MUST be consolidated into a **single, uniquely named text file** in `saved/data/`. 
 
 **Mandatory Naming Rule**:
-- For reports generated via the `/conversions_support_package` command, the file MUST be named exactly `conversions_support_package_<epoch>.text`.
+- For reports generated via the `conversions_support_package` skill, the file MUST be named exactly `conversions_support_package_<epoch>.text`.
 - For any other conversion-related reports or files, DO NOT use this specific naming convention.
 
 This file MUST be the sole artifact submitted to the user for support. It must start with the header "Created by the Google Ads API Developer Assistant". Placeholders or references to other files for "details" are strictly prohibited; all data must be contained within this single file.

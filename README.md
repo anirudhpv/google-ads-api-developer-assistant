@@ -160,15 +160,6 @@ b.  **Set Context in Gemini:** The `gemini` command must be run from the root of
     > ... (code displayed as the result of a previous request) ...
     > "Save the results to csv"
 
-### Customm Commands
-
-This is a partial list of custom commands:
-
-* `/explain <request>` - Format the response from the model to be more readable. It attempts to use real world analogies to explain a concept.
-* `/step_by_step <request>` - Format the response as series of steps. Show the model's thinking process. This is useful for debugging.
-* `/conversions_support_data` - Collects structured diagnostic data for gTech conversion troubleshooting and saves a report to `saved/data/`.
-
-To see the full list, from within the Assistant, `list commands`. 
 
 ## Directory Structure
 

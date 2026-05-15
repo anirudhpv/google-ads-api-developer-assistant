@@ -3,6 +3,9 @@
 - Added skill to fetch all child accounts under an MCC.
 - Added rule to GEMINI.md to always check Devsite first for current version.
 - Added rule to GEMINI.md to prevent using SQL aggregate functions in GAQL queries.
+- Converted explain command to a skill.
+- Converted step_by_step command to a skill.
+- Converted conversions_support_package command to a skill.
 
 * 2.3.0
 - Added context_dir argument to update scripts to add additional directories. (e.g., your codebase)
