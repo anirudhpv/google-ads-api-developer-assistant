@@ -68,6 +68,21 @@ def validate_gaql(
         print("Error: No query provided.")
         sys.exit(1)
 
+    # Static Analysis
+    query_upper = query.upper()
+    has_from = " FROM " in query_upper or query_upper.strip().startswith("SELECT") and "FROM" in query_upper
+
+    # Check for metadata query pitfalls
+    if "GOOGLE_ADS_FIELD" in query_upper:
+        if has_from:
+            print("FAILURE: Metadata queries (google_ads_field) MUST NOT contain a FROM clause.")
+            print("  - Incorrect: SELECT name FROM google_ads_field")
+            print("  - Correct: SELECT name")
+            sys.exit(1)
+        if any(prefix in query_upper for prefix in ["GOOGLE_ADS_FIELD.", "METRICS.", "SEGMENTS."]):
+            print("FAILURE: Metadata queries MUST NOT use resource/segment prefixes (e.g., use 'name', not 'google_ads_field.name').")
+            sys.exit(1)
+
     # Dynamically handle versioned types for the request object
     api_version_lower = api_version.lower()
     module_path = (

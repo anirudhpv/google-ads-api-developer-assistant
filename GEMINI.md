@@ -27,7 +27,11 @@
 - **SOURCE OF TRUTH:** Never rely solely on high-level documentation summaries or search snippets for API capabilities. Always use `grep_search` and `read_file` to verify the literal `.proto` definitions or Python client library docstrings before concluding an API feature's behavior or requirements. When searching for client library definitions or examples, you MUST prioritize the local `client_libs/` directory (e.g., `client_libs/google-ads-python/`) and NEVER use system-wide paths (e.g., `/usr/local/lib/` or `~/.pyenv/`) to avoid version mismatches and environment-specific discrepancies.
 - **PROTOCOL ADHERENCE:** Strictly prohibited from executing un-linted Python code or un-validated GAQL queries.
 - **NO GAQL 'OR' OPERATOR:** Strictly prohibited from using the `OR` logical operator in ANY GAQL query. It is not supported and will cause an `UNEXPECTED_INPUT` error. Always use `IN` or execute multiple separate queries.
-- **NO 'FROM' IN METADATA QUERIES:** When using `GoogleAdsFieldService.search_google_ads_fields`, the GAQL query MUST NOT contain a `FROM` clause (e.g., do not use `FROM google_ads_field`). It will trigger an `UNEXPECTED_FROM_CLAUSE` error.
+- **NO 'FROM' IN METADATA QUERIES [CRITICAL]:** When using `GoogleAdsFieldService.search_google_ads_fields` (Metadata Discovery), the GAQL query MUST NOT contain a `FROM` clause.
+  - **Incorrect:** `SELECT name FROM google_ads_field WHERE name = 'campaign.id'`
+  - **Correct:** `SELECT name WHERE name = 'campaign.id'`
+  - **Reason:** Metadata queries are not executed against the main `GoogleAdsService` and do not support the `FROM` clause.
+- **NO RESOURCE PREFIXES IN METADATA:** In `GoogleAdsFieldService` queries, use bare field names (e.g., `name`, `category`), NOT prefixed names (e.g., `google_ads_field.name`).
 
 #### 1.3. Workflow: API Versioning & Pre-Task Validation
 #### 1.4. Technical Gatekeeping (Protocol Enforcement)
@@ -74,9 +78,23 @@ If the `web_fetch` tool is unavailable and you cannot complete the standard vali
 
 ---
 
-### 3. API Workflow [TECHNICAL]
+### 3. GAQL & API Workflow [TECHNICAL]
 
-#### 3.1.  Code Generation Protocol (Python)
+#### 3.1. Programmatic GAQL Validation (CRITICAL)
+Before presenting or executing ANY GAQL query, you MUST pass this 4-step sequence:
+
+1.  **Schema Discovery:** Use `GoogleAdsFieldService.search_google_ads_fields` to verify field existence, selectability, and filterability.
+2.  **Compatibility Check:** Query the primary resource's `selectable_with` attribute. Verify all selected fields are compatible.
+3.  **Static Analysis:**
+    - `WHERE` fields MUST be in `SELECT` (unless core date segments).
+    - `OR` is forbidden. Use `IN` or multiple queries.
+    - **NO FROM IN METADATA:** Queries to `GoogleAdsFieldService` MUST NOT contain a `FROM` clause.
+    - **Metadata Field Names:** When using `GoogleAdsFieldService.search_google_ads_fields`, field names MUST NOT be prefixed with the resource name (e.g., use `name`, not `google_ads_field.name`). Do NOT use `GoogleAdsService` to query `google_ads_field`. Failure results in `UNRECOGNIZED_FIELD`.
+4.  **Runtime Dry Run:** Execute `./.venv/bin/python3 .gemini/skills/validate_gaql/scripts/validate_gaql.py --customer_id <customer_id> --api_version <api_version>`.
+    - **Success:** Proceed to implementation.
+    - **Failure:** Fix query based on validator output and restart from Step 1.
+
+#### 3.2. Code Generation Protocol (Python)
 Every Python script generated MUST follow this automated linting pipeline:
 1.  **Write:** Write code to a temporary file in `/tmp/`.
 2.  **Lint:** Run `ruff check --fix <tmp_file>`.
